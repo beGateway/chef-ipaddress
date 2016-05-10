@@ -98,14 +98,14 @@ describe 'chef-ipaddress::default' do
     end
 
     it 'should notify the service' do
-      chef_run.node.set['chef-ipaddress']['restart_networking'] = true
+      chef_run.node.set['chef_ipaddress']['restart_networking'] = true
       chef_run.converge(described_recipe)
 
       expect(ubuntu_tmpl).to notify('service[networking]').to(:restart)
     end
 
     it 'should not notify the service' do
-      chef_run.node.set['chef-ipaddress']['restart_networking'] = false
+      chef_run.node.set['chef_ipaddress']['restart_networking'] = false
       chef_run.converge(described_recipe)
 
       expect(ubuntu_tmpl).to_not notify('service[networking]').to(:restart)
@@ -113,17 +113,41 @@ describe 'chef-ipaddress::default' do
     end
 
     it 'should restart networking service' do
-      chef_run.node.set['chef-ipaddress']['restart_networking'] = true
+      chef_run.node.set['chef_ipaddress']['restart_networking'] = true
       chef_run.converge(described_recipe)
 
       expect(chef_run).to restart_service('networking')
     end
 
     it 'should not restart networking service' do
-      chef_run.node.set['chef-ipaddress']['restart_networking'] = false
+      chef_run.node.set['chef_ipaddress']['restart_networking'] = false
       chef_run.converge(described_recipe)
 
       expect(chef_run).to_not restart_service('networking')
+    end
+
+    it 'should not update upstart network files' do
+      chef_run.converge(described_recipe)
+
+      expect(chef_run).to_not create_cookbook_file('/etc/init/networking.conf')
+      expect(chef_run).to_not create_cookbook_file('/etc/init.d/networking')
+    end
+
+    context 'when version 14.04' do
+      let (:chef_run) do
+        ChefSpec::SoloRunner.new(
+          platform: 'ubuntu',
+          version: '14.04',
+          cookbook_path: '../')
+      end
+
+      it 'should update upstart network files' do
+        chef_run.converge(described_recipe)
+
+        expect(chef_run).to create_cookbook_file('/etc/init/networking.conf')
+        expect(chef_run).to create_cookbook_file('/etc/init.d/networking')
+      end
+
     end
   end
 end
